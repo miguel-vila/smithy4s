@@ -6,13 +6,11 @@ import smithy4s.Schema
 import smithy4s.Service
 import smithy4s.ServiceProduct
 import smithy4s.ShapeId
-import smithy4s.ShapeTag
 import smithy4s.StreamingSchema
 import smithy4s.Transformation
 import smithy4s.kinds.PolyFunction5
 import smithy4s.kinds.toPolyFunction5.const5
 import smithy4s.schema.Schema.UnionSchema
-import smithy4s.schema.Schema.bijection
 import smithy4s.schema.Schema.union
 import smithy4s.schema.Schema.unit
 
@@ -75,10 +73,8 @@ object NameCollisionProductGen extends ServiceProduct[NameCollisionProductGen] {
   }
 
   def toPolyFunction[P2[_, _, _, _, _]](algebra: NameCollisionProductGen[P2]) = new PolyFunction5[service.Endpoint, P2] {
-    def apply[I, E, O, SI, SO](fa: service.Endpoint[I, E, O, SI, SO]): P2[I, E, O, SI, SO] =
-    fa match {
-      case NameCollisionOperation.MyOp => algebra.myOp
-      case NameCollisionOperation.Endpoint => algebra.endpoint
+    def apply[I, E, O, SI, SO](fa: service.Endpoint[I, E, O, SI, SO]) = {
+      fa.runWithProduct(algebra)
     }
   }
 
@@ -124,33 +120,23 @@ object NameCollisionOperation {
     override val errorable: Option[Errorable[MyOpError]] = Some(this)
     val error: UnionSchema[MyOpError] = MyOpError.schema
     def liftError(throwable: Throwable): Option[MyOpError] = throwable match {
-      case e: smithy4s.example.MyOpError => Some(MyOpError.MyOpErrorCase(e))
+      case e: MyOpError => Some(e)
       case _ => None
     }
-    def unliftError(e: MyOpError): Throwable = e match {
-      case MyOpError.MyOpErrorCase(e) => e
-    }
+    def unliftError(e: MyOpError): Throwable = e
+    def runWithProduct[F[_, _, _, _, _]](impl: NameCollisionProductGen[F]): F[Unit, NameCollisionOperation.MyOpError, Unit, Nothing, Nothing] = impl.myOp
   }
-  sealed trait MyOpError extends scala.Product with scala.Serializable {
-    @inline final def widen: MyOpError = this
-  }
-  object MyOpError extends ShapeTag.Companion[MyOpError] {
+  type MyOpError = smithy4s.example.MyOpError
+  object MyOpError {
     val id: ShapeId = ShapeId("smithy4s.example", "MyOpError")
 
     val hints: Hints = Hints.empty
 
-    final case class MyOpErrorCase(myOpError: smithy4s.example.MyOpError) extends MyOpError
-
-    object MyOpErrorCase {
-      val hints: Hints = Hints.empty
-      val schema: Schema[MyOpErrorCase] = bijection(smithy4s.example.MyOpError.schema.addHints(hints), MyOpErrorCase(_), _.myOpError)
-      val alt = schema.oneOf[MyOpError]("MyOpError")
-    }
-
-    implicit val schema: UnionSchema[MyOpError] = union(
-      MyOpErrorCase.alt,
-    ){
-      case c: MyOpErrorCase => MyOpErrorCase.alt(c)
+    val schema: UnionSchema[MyOpError] = {
+      val myOpErrorAlt = smithy4s.example.MyOpError.schema.oneOf[MyOpError]("MyOpError")
+      union(myOpErrorAlt) {
+        case c: MyOpError => myOpErrorAlt(c)
+      }
     }
   }
   final case class Endpoint() extends NameCollisionOperation[Unit, Nothing, Unit, Nothing, Nothing] {
@@ -166,6 +152,7 @@ object NameCollisionOperation {
     val hints: Hints = Hints.empty
     def wrap(input: Unit) = Endpoint()
     override val errorable: Option[Nothing] = None
+    def runWithProduct[F[_, _, _, _, _]](impl: NameCollisionProductGen[F]): F[Unit, Nothing, Unit, Nothing, Nothing] = impl.endpoint
   }
 }
 

@@ -79,12 +79,8 @@ object ReservedNameServiceProductGen extends ServiceProduct[ReservedNameServiceP
   }
 
   def toPolyFunction[P2[_, _, _, _, _]](algebra: ReservedNameServiceProductGen[P2]) = new PolyFunction5[service.Endpoint, P2] {
-    def apply[I, E, O, SI, SO](fa: service.Endpoint[I, E, O, SI, SO]): P2[I, E, O, SI, SO] =
-    fa match {
-      case ReservedNameServiceOperation._Set => algebra.set
-      case ReservedNameServiceOperation._List => algebra.list
-      case ReservedNameServiceOperation._Map => algebra.map
-      case ReservedNameServiceOperation._Option => algebra.option
+    def apply[I, E, O, SI, SO](fa: service.Endpoint[I, E, O, SI, SO]) = {
+      fa.runWithProduct(algebra)
     }
   }
 
@@ -136,6 +132,7 @@ object ReservedNameServiceOperation {
     )
     def wrap(input: SetInput) = _Set(input)
     override val errorable: Option[Nothing] = None
+    def runWithProduct[F[_, _, _, _, _]](impl: ReservedNameServiceProductGen[F]): F[SetInput, Nothing, Unit, Nothing, Nothing] = impl.set
   }
   final case class _List(input: ListInput) extends ReservedNameServiceOperation[ListInput, Nothing, Unit, Nothing, Nothing] {
     def run[F[_, _, _, _, _]](impl: ReservedNameServiceGen[F]): F[ListInput, Nothing, Unit, Nothing, Nothing] = impl.list(input.list)
@@ -152,6 +149,7 @@ object ReservedNameServiceOperation {
     )
     def wrap(input: ListInput) = _List(input)
     override val errorable: Option[Nothing] = None
+    def runWithProduct[F[_, _, _, _, _]](impl: ReservedNameServiceProductGen[F]): F[ListInput, Nothing, Unit, Nothing, Nothing] = impl.list
   }
   final case class _Map(input: MapInput) extends ReservedNameServiceOperation[MapInput, Nothing, Unit, Nothing, Nothing] {
     def run[F[_, _, _, _, _]](impl: ReservedNameServiceGen[F]): F[MapInput, Nothing, Unit, Nothing, Nothing] = impl.map(input.value)
@@ -168,6 +166,7 @@ object ReservedNameServiceOperation {
     )
     def wrap(input: MapInput) = _Map(input)
     override val errorable: Option[Nothing] = None
+    def runWithProduct[F[_, _, _, _, _]](impl: ReservedNameServiceProductGen[F]): F[MapInput, Nothing, Unit, Nothing, Nothing] = impl.map
   }
   final case class _Option(input: OptionInput) extends ReservedNameServiceOperation[OptionInput, Nothing, Unit, Nothing, Nothing] {
     def run[F[_, _, _, _, _]](impl: ReservedNameServiceGen[F]): F[OptionInput, Nothing, Unit, Nothing, Nothing] = impl.option(input.value)
@@ -184,6 +183,7 @@ object ReservedNameServiceOperation {
     )
     def wrap(input: OptionInput) = _Option(input)
     override val errorable: Option[Nothing] = None
+    def runWithProduct[F[_, _, _, _, _]](impl: ReservedNameServiceProductGen[F]): F[OptionInput, Nothing, Unit, Nothing, Nothing] = impl.option
   }
 }
 

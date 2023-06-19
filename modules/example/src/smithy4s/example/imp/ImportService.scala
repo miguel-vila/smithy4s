@@ -7,7 +7,6 @@ import smithy4s.Schema
 import smithy4s.Service
 import smithy4s.ServiceProduct
 import smithy4s.ShapeId
-import smithy4s.ShapeTag
 import smithy4s.StreamingSchema
 import smithy4s.Transformation
 import smithy4s.example.error.NotFoundError
@@ -15,7 +14,6 @@ import smithy4s.example.import_test.OpOutput
 import smithy4s.kinds.PolyFunction5
 import smithy4s.kinds.toPolyFunction5.const5
 import smithy4s.schema.Schema.UnionSchema
-import smithy4s.schema.Schema.bijection
 import smithy4s.schema.Schema.union
 import smithy4s.schema.Schema.unit
 
@@ -76,9 +74,8 @@ object ImportServiceProductGen extends ServiceProduct[ImportServiceProductGen] {
   }
 
   def toPolyFunction[P2[_, _, _, _, _]](algebra: ImportServiceProductGen[P2]) = new PolyFunction5[service.Endpoint, P2] {
-    def apply[I, E, O, SI, SO](fa: service.Endpoint[I, E, O, SI, SO]): P2[I, E, O, SI, SO] =
-    fa match {
-      case ImportServiceOperation.ImportOperation => algebra.importOperation
+    def apply[I, E, O, SI, SO](fa: service.Endpoint[I, E, O, SI, SO]) = {
+      fa.runWithProduct(algebra)
     }
   }
 
@@ -123,33 +120,23 @@ object ImportServiceOperation {
     override val errorable: Option[Errorable[ImportOperationError]] = Some(this)
     val error: UnionSchema[ImportOperationError] = ImportOperationError.schema
     def liftError(throwable: Throwable): Option[ImportOperationError] = throwable match {
-      case e: NotFoundError => Some(ImportOperationError.NotFoundErrorCase(e))
+      case e: ImportOperationError => Some(e)
       case _ => None
     }
-    def unliftError(e: ImportOperationError): Throwable = e match {
-      case ImportOperationError.NotFoundErrorCase(e) => e
-    }
+    def unliftError(e: ImportOperationError): Throwable = e
+    def runWithProduct[F[_, _, _, _, _]](impl: ImportServiceProductGen[F]): F[Unit, ImportServiceOperation.ImportOperationError, OpOutput, Nothing, Nothing] = impl.importOperation
   }
-  sealed trait ImportOperationError extends scala.Product with scala.Serializable {
-    @inline final def widen: ImportOperationError = this
-  }
-  object ImportOperationError extends ShapeTag.Companion[ImportOperationError] {
+  type ImportOperationError = NotFoundError
+  object ImportOperationError {
     val id: ShapeId = ShapeId("smithy4s.example.imp", "ImportOperationError")
 
     val hints: Hints = Hints.empty
 
-    final case class NotFoundErrorCase(notFoundError: NotFoundError) extends ImportOperationError
-
-    object NotFoundErrorCase {
-      val hints: Hints = Hints.empty
-      val schema: Schema[NotFoundErrorCase] = bijection(NotFoundError.schema.addHints(hints), NotFoundErrorCase(_), _.notFoundError)
-      val alt = schema.oneOf[ImportOperationError]("NotFoundError")
-    }
-
-    implicit val schema: UnionSchema[ImportOperationError] = union(
-      NotFoundErrorCase.alt,
-    ){
-      case c: NotFoundErrorCase => NotFoundErrorCase.alt(c)
+    val schema: UnionSchema[ImportOperationError] = {
+      val notFoundErrorAlt = NotFoundError.schema.oneOf[ImportOperationError]("NotFoundError")
+      union(notFoundErrorAlt) {
+        case c: NotFoundError => notFoundErrorAlt(c)
+      }
     }
   }
 }

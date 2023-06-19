@@ -74,9 +74,8 @@ object FooServiceProductGen extends ServiceProduct[FooServiceProductGen] {
   }
 
   def toPolyFunction[P2[_, _, _, _, _]](algebra: FooServiceProductGen[P2]) = new PolyFunction5[service.Endpoint, P2] {
-    def apply[I, E, O, SI, SO](fa: service.Endpoint[I, E, O, SI, SO]): P2[I, E, O, SI, SO] =
-    fa match {
-      case FooServiceOperation.GetFoo => algebra.getFoo
+    def apply[I, E, O, SI, SO](fa: service.Endpoint[I, E, O, SI, SO]) = {
+      fa.runWithProduct(algebra)
     }
   }
 
@@ -121,6 +120,7 @@ object FooServiceOperation {
     )
     def wrap(input: Unit) = GetFoo()
     override val errorable: Option[Nothing] = None
+    def runWithProduct[F[_, _, _, _, _]](impl: FooServiceProductGen[F]): F[Unit, Nothing, GetFooOutput, Nothing, Nothing] = impl.getFoo
   }
 }
 

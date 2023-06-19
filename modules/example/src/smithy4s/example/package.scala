@@ -3,6 +3,8 @@ package smithy4s
 package object example {
   type StreamedObjects[F[_]] = smithy4s.kinds.FunctorAlgebra[StreamedObjectsGen, F]
   val StreamedObjects = StreamedObjectsGen
+  type ErrorService[F[_]] = smithy4s.kinds.FunctorAlgebra[ErrorServiceGen, F]
+  val ErrorService = ErrorServiceGen
   type FooService[F[_]] = smithy4s.kinds.FunctorAlgebra[FooServiceGen, F]
   val FooService = FooServiceGen
   type BrandService[F[_]] = smithy4s.kinds.FunctorAlgebra[BrandServiceGen, F]

@@ -7,13 +7,11 @@ import smithy4s.Schema
 import smithy4s.Service
 import smithy4s.ServiceProduct
 import smithy4s.ShapeId
-import smithy4s.ShapeTag
 import smithy4s.StreamingSchema
 import smithy4s.Transformation
 import smithy4s.kinds.PolyFunction5
 import smithy4s.kinds.toPolyFunction5.const5
 import smithy4s.schema.Schema.UnionSchema
-import smithy4s.schema.Schema.bijection
 import smithy4s.schema.Schema.union
 import smithy4s.schema.Schema.unit
 
@@ -87,10 +85,8 @@ object ObjectServiceProductGen extends ServiceProduct[ObjectServiceProductGen] {
   }
 
   def toPolyFunction[P2[_, _, _, _, _]](algebra: ObjectServiceProductGen[P2]) = new PolyFunction5[service.Endpoint, P2] {
-    def apply[I, E, O, SI, SO](fa: service.Endpoint[I, E, O, SI, SO]): P2[I, E, O, SI, SO] =
-    fa match {
-      case ObjectServiceOperation.PutObject => algebra.putObject
-      case ObjectServiceOperation.GetObject => algebra.getObject
+    def apply[I, E, O, SI, SO](fa: service.Endpoint[I, E, O, SI, SO]) = {
+      fa.runWithProduct(algebra)
     }
   }
 
@@ -139,43 +135,25 @@ object ObjectServiceOperation {
     override val errorable: Option[Errorable[PutObjectError]] = Some(this)
     val error: UnionSchema[PutObjectError] = PutObjectError.schema
     def liftError(throwable: Throwable): Option[PutObjectError] = throwable match {
-      case e: ServerError => Some(PutObjectError.ServerErrorCase(e))
-      case e: NoMoreSpace => Some(PutObjectError.NoMoreSpaceCase(e))
+      case e: PutObjectError => Some(e)
       case _ => None
     }
-    def unliftError(e: PutObjectError): Throwable = e match {
-      case PutObjectError.ServerErrorCase(e) => e
-      case PutObjectError.NoMoreSpaceCase(e) => e
-    }
+    def unliftError(e: PutObjectError): Throwable = e
+    def runWithProduct[F[_, _, _, _, _]](impl: ObjectServiceProductGen[F]): F[PutObjectInput, ObjectServiceOperation.PutObjectError, Unit, Nothing, Nothing] = impl.putObject
   }
-  sealed trait PutObjectError extends scala.Product with scala.Serializable {
-    @inline final def widen: PutObjectError = this
-  }
-  object PutObjectError extends ShapeTag.Companion[PutObjectError] {
+  type PutObjectError = ServerError | NoMoreSpace
+  object PutObjectError {
     val id: ShapeId = ShapeId("smithy4s.example", "PutObjectError")
 
     val hints: Hints = Hints.empty
 
-    final case class ServerErrorCase(serverError: ServerError) extends PutObjectError
-    final case class NoMoreSpaceCase(noMoreSpace: NoMoreSpace) extends PutObjectError
-
-    object ServerErrorCase {
-      val hints: Hints = Hints.empty
-      val schema: Schema[ServerErrorCase] = bijection(ServerError.schema.addHints(hints), ServerErrorCase(_), _.serverError)
-      val alt = schema.oneOf[PutObjectError]("ServerError")
-    }
-    object NoMoreSpaceCase {
-      val hints: Hints = Hints.empty
-      val schema: Schema[NoMoreSpaceCase] = bijection(NoMoreSpace.schema.addHints(hints), NoMoreSpaceCase(_), _.noMoreSpace)
-      val alt = schema.oneOf[PutObjectError]("NoMoreSpace")
-    }
-
-    implicit val schema: UnionSchema[PutObjectError] = union(
-      ServerErrorCase.alt,
-      NoMoreSpaceCase.alt,
-    ){
-      case c: ServerErrorCase => ServerErrorCase.alt(c)
-      case c: NoMoreSpaceCase => NoMoreSpaceCase.alt(c)
+    val schema: UnionSchema[PutObjectError] = {
+      val serverErrorAlt = ServerError.schema.oneOf[PutObjectError]("ServerError")
+      val noMoreSpaceAlt = NoMoreSpace.schema.oneOf[PutObjectError]("NoMoreSpace")
+      union(serverErrorAlt, noMoreSpaceAlt) {
+        case c: ServerError => serverErrorAlt(c)
+        case c: NoMoreSpace => noMoreSpaceAlt(c)
+      }
     }
   }
   final case class GetObject(input: GetObjectInput) extends ObjectServiceOperation[GetObjectInput, ObjectServiceOperation.GetObjectError, GetObjectOutput, Nothing, Nothing] {
@@ -196,33 +174,23 @@ object ObjectServiceOperation {
     override val errorable: Option[Errorable[GetObjectError]] = Some(this)
     val error: UnionSchema[GetObjectError] = GetObjectError.schema
     def liftError(throwable: Throwable): Option[GetObjectError] = throwable match {
-      case e: ServerError => Some(GetObjectError.ServerErrorCase(e))
+      case e: GetObjectError => Some(e)
       case _ => None
     }
-    def unliftError(e: GetObjectError): Throwable = e match {
-      case GetObjectError.ServerErrorCase(e) => e
-    }
+    def unliftError(e: GetObjectError): Throwable = e
+    def runWithProduct[F[_, _, _, _, _]](impl: ObjectServiceProductGen[F]): F[GetObjectInput, ObjectServiceOperation.GetObjectError, GetObjectOutput, Nothing, Nothing] = impl.getObject
   }
-  sealed trait GetObjectError extends scala.Product with scala.Serializable {
-    @inline final def widen: GetObjectError = this
-  }
-  object GetObjectError extends ShapeTag.Companion[GetObjectError] {
+  type GetObjectError = ServerError
+  object GetObjectError {
     val id: ShapeId = ShapeId("smithy4s.example", "GetObjectError")
 
     val hints: Hints = Hints.empty
 
-    final case class ServerErrorCase(serverError: ServerError) extends GetObjectError
-
-    object ServerErrorCase {
-      val hints: Hints = Hints.empty
-      val schema: Schema[ServerErrorCase] = bijection(ServerError.schema.addHints(hints), ServerErrorCase(_), _.serverError)
-      val alt = schema.oneOf[GetObjectError]("ServerError")
-    }
-
-    implicit val schema: UnionSchema[GetObjectError] = union(
-      ServerErrorCase.alt,
-    ){
-      case c: ServerErrorCase => ServerErrorCase.alt(c)
+    val schema: UnionSchema[GetObjectError] = {
+      val serverErrorAlt = ServerError.schema.oneOf[GetObjectError]("ServerError")
+      union(serverErrorAlt) {
+        case c: ServerError => serverErrorAlt(c)
+      }
     }
   }
 }

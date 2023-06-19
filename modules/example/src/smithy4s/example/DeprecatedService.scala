@@ -70,9 +70,8 @@ object DeprecatedServiceProductGen extends ServiceProduct[DeprecatedServiceProdu
   }
 
   def toPolyFunction[P2[_, _, _, _, _]](algebra: DeprecatedServiceProductGen[P2]) = new PolyFunction5[service.Endpoint, P2] {
-    def apply[I, E, O, SI, SO](fa: service.Endpoint[I, E, O, SI, SO]): P2[I, E, O, SI, SO] =
-    fa match {
-      case DeprecatedServiceOperation.DeprecatedOperation => algebra.deprecatedOperation
+    def apply[I, E, O, SI, SO](fa: service.Endpoint[I, E, O, SI, SO]) = {
+      fa.runWithProduct(algebra)
     }
   }
 
@@ -115,6 +114,7 @@ object DeprecatedServiceOperation {
     )
     def wrap(input: Unit) = DeprecatedOperation()
     override val errorable: Option[Nothing] = None
+    def runWithProduct[F[_, _, _, _, _]](impl: DeprecatedServiceProductGen[F]): F[Unit, Nothing, Unit, Nothing, Nothing] = impl.deprecatedOperation
   }
 }
 

@@ -391,14 +391,18 @@ private[internals] class Renderer(compilationUnit: CompilationUnit) { self =>
         block(
           line"def $toPolyFunction_[P2[_, _, _, _, _]](algebra: ${genNameProductRef}[P2]) = new $PolyFunction5_[service.Endpoint, P2]"
         )(
-          line"def $apply_[I, E, O, SI, SO](fa: service.Endpoint[I, E, O, SI, SO]): P2[I, E, O, SI, SO] =",
-          if (ops.isEmpty) line"""sys.error("impossible")"""
-          else
-            block(line"fa match")(
-              ops.map { op =>
-                line"case ${opTraitNameRef}.${op.name} => algebra.${op.methodName}"
-              }
-            )
+          if (ops.isEmpty)
+            block (
+              line"""def apply[I, E, O, SI, SO](fa: service.Endpoint[I, E, O, SI, SO]): P2[I, E, O, SI, SO] ="""
+        )(
+          line"""sys.error("impossible")"""
+        )
+        else 
+          block (
+              line"""def apply[I, E, O, SI, SO](fa: service.Endpoint[I, E, O, SI, SO]) ="""
+        )(
+            line"""fa.runWithProduct(algebra)"""
+          )
         ),
         newline,
         block(
@@ -419,6 +423,7 @@ private[internals] class Renderer(compilationUnit: CompilationUnit) { self =>
         line"sealed trait $opTraitName[Input, Err, Output, StreamedInput, StreamedOutput]"
       )(
         line"def run[F[_, _, _, _, _]](impl: $genName[F]): F[Input, Err, Output, StreamedInput, StreamedOutput]",
+        // line"def runWithProduct[F[_, _, _, _, _]](impl: $genNameProduct[F]): F[Input, Err, Output, StreamedInput, StreamedOutput]",
         line"def endpoint: (Input, $Endpoint_[$opTraitName, Input, Err, Output, StreamedInput, StreamedOutput])"
       ),
       newline,
@@ -474,6 +479,7 @@ private[internals] class Renderer(compilationUnit: CompilationUnit) { self =>
       line"input"
     } else line"()"
     val genServiceName = serviceName + "Gen"
+    val genProductServiceName = serviceName + "ProductGen"
     val opObjectName = serviceName + "Operation"
     val opName = op.name
     val opNameRef = NameRef(opName)
@@ -544,7 +550,9 @@ private[internals] class Renderer(compilationUnit: CompilationUnit) { self =>
         renderStreamingSchemaVal("streamedOutput", op.streamedOutput),
         renderHintsVal(op.hints),
         line"def wrap(input: ${op.input}) = ${opNameRef}($input)",
-        renderErrorable(op)
+        renderErrorable(op),
+        line"def runWithProduct[F[_, _, _, _, _]](impl: $genProductServiceName[F]): F[${op
+          .renderAlgParams(opObjectName)}] = impl.${op.methodName}",
       ),
       renderedErrorUnion
     )

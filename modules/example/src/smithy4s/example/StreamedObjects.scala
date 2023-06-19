@@ -69,10 +69,8 @@ object StreamedObjectsProductGen extends ServiceProduct[StreamedObjectsProductGe
   }
 
   def toPolyFunction[P2[_, _, _, _, _]](algebra: StreamedObjectsProductGen[P2]) = new PolyFunction5[service.Endpoint, P2] {
-    def apply[I, E, O, SI, SO](fa: service.Endpoint[I, E, O, SI, SO]): P2[I, E, O, SI, SO] =
-    fa match {
-      case StreamedObjectsOperation.PutStreamedObject => algebra.putStreamedObject
-      case StreamedObjectsOperation.GetStreamedObject => algebra.getStreamedObject
+    def apply[I, E, O, SI, SO](fa: service.Endpoint[I, E, O, SI, SO]) = {
+      fa.runWithProduct(algebra)
     }
   }
 
@@ -116,6 +114,7 @@ object StreamedObjectsOperation {
     val hints: Hints = Hints.empty
     def wrap(input: PutStreamedObjectInput) = PutStreamedObject(input)
     override val errorable: Option[Nothing] = None
+    def runWithProduct[F[_, _, _, _, _]](impl: StreamedObjectsProductGen[F]): F[PutStreamedObjectInput, Nothing, Unit, StreamedBlob, Nothing] = impl.putStreamedObject
   }
   final case class GetStreamedObject(input: GetStreamedObjectInput) extends StreamedObjectsOperation[GetStreamedObjectInput, Nothing, GetStreamedObjectOutput, Nothing, StreamedBlob] {
     def run[F[_, _, _, _, _]](impl: StreamedObjectsGen[F]): F[GetStreamedObjectInput, Nothing, GetStreamedObjectOutput, Nothing, StreamedBlob] = impl.getStreamedObject(input.key)
@@ -130,6 +129,7 @@ object StreamedObjectsOperation {
     val hints: Hints = Hints.empty
     def wrap(input: GetStreamedObjectInput) = GetStreamedObject(input)
     override val errorable: Option[Nothing] = None
+    def runWithProduct[F[_, _, _, _, _]](impl: StreamedObjectsProductGen[F]): F[GetStreamedObjectInput, Nothing, GetStreamedObjectOutput, Nothing, StreamedBlob] = impl.getStreamedObject
   }
 }
 

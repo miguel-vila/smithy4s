@@ -65,9 +65,8 @@ object BrandServiceProductGen extends ServiceProduct[BrandServiceProductGen] {
   }
 
   def toPolyFunction[P2[_, _, _, _, _]](algebra: BrandServiceProductGen[P2]) = new PolyFunction5[service.Endpoint, P2] {
-    def apply[I, E, O, SI, SO](fa: service.Endpoint[I, E, O, SI, SO]): P2[I, E, O, SI, SO] =
-    fa match {
-      case BrandServiceOperation.AddBrands => algebra.addBrands
+    def apply[I, E, O, SI, SO](fa: service.Endpoint[I, E, O, SI, SO]) = {
+      fa.runWithProduct(algebra)
     }
   }
 
@@ -110,6 +109,7 @@ object BrandServiceOperation {
     )
     def wrap(input: AddBrandsInput) = AddBrands(input)
     override val errorable: Option[Nothing] = None
+    def runWithProduct[F[_, _, _, _, _]](impl: BrandServiceProductGen[F]): F[AddBrandsInput, Nothing, Unit, Nothing, Nothing] = impl.addBrands
   }
 }
 
