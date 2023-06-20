@@ -88,6 +88,9 @@ sealed trait StreamedObjectsOperation[Input, Err, Output, StreamedInput, Streame
   def run[F[_, _, _, _, _]](impl: StreamedObjectsGen[F]): F[Input, Err, Output, StreamedInput, StreamedOutput]
   def endpoint: (Input, Endpoint[StreamedObjectsOperation, Input, Err, Output, StreamedInput, StreamedOutput])
 }
+sealed trait StreamedObjectsEndpoint[Input, Err, Output, StreamedInput, StreamedOutput] extends smithy4s.Endpoint[StreamedObjectsOperation, Input, Err, Output, StreamedInput, StreamedOutput] {
+  def runWithProduct[F[_, _, _, _, _]](impl: StreamedObjectsProductGen[F]): F[Input, Err, Output, StreamedInput, StreamedOutput]
+}
 
 object StreamedObjectsOperation {
 
@@ -107,7 +110,7 @@ object StreamedObjectsOperation {
     def run[F[_, _, _, _, _]](impl: StreamedObjectsGen[F]): F[PutStreamedObjectInput, Nothing, Unit, StreamedBlob, Nothing] = impl.putStreamedObject(input.key)
     def endpoint: (PutStreamedObjectInput, smithy4s.Endpoint[StreamedObjectsOperation,PutStreamedObjectInput, Nothing, Unit, StreamedBlob, Nothing]) = (input, PutStreamedObject)
   }
-  object PutStreamedObject extends smithy4s.Endpoint[StreamedObjectsOperation,PutStreamedObjectInput, Nothing, Unit, StreamedBlob, Nothing] {
+  object PutStreamedObject extends smithy4s.Endpoint[StreamedObjectsOperation,PutStreamedObjectInput, Nothing, Unit, StreamedBlob, Nothing] with StreamedObjectsEndpoint[PutStreamedObjectInput, Nothing, Unit, StreamedBlob, Nothing] {
     val id: ShapeId = ShapeId("smithy4s.example", "PutStreamedObject")
     val input: Schema[PutStreamedObjectInput] = PutStreamedObjectInput.schema.addHints(smithy4s.internals.InputOutput.Input.widen)
     val output: Schema[Unit] = unit.addHints(smithy4s.internals.InputOutput.Output.widen)
@@ -116,12 +119,13 @@ object StreamedObjectsOperation {
     val hints: Hints = Hints.empty
     def wrap(input: PutStreamedObjectInput) = PutStreamedObject(input)
     override val errorable: Option[Nothing] = None
+    def runWithProduct[F[_, _, _, _, _]](impl: StreamedObjectsProductGen[F]): F[PutStreamedObjectInput, Nothing, Unit, StreamedBlob, Nothing] = impl.putStreamedObject
   }
   final case class GetStreamedObject(input: GetStreamedObjectInput) extends StreamedObjectsOperation[GetStreamedObjectInput, Nothing, GetStreamedObjectOutput, Nothing, StreamedBlob] {
     def run[F[_, _, _, _, _]](impl: StreamedObjectsGen[F]): F[GetStreamedObjectInput, Nothing, GetStreamedObjectOutput, Nothing, StreamedBlob] = impl.getStreamedObject(input.key)
     def endpoint: (GetStreamedObjectInput, smithy4s.Endpoint[StreamedObjectsOperation,GetStreamedObjectInput, Nothing, GetStreamedObjectOutput, Nothing, StreamedBlob]) = (input, GetStreamedObject)
   }
-  object GetStreamedObject extends smithy4s.Endpoint[StreamedObjectsOperation,GetStreamedObjectInput, Nothing, GetStreamedObjectOutput, Nothing, StreamedBlob] {
+  object GetStreamedObject extends smithy4s.Endpoint[StreamedObjectsOperation,GetStreamedObjectInput, Nothing, GetStreamedObjectOutput, Nothing, StreamedBlob] with StreamedObjectsEndpoint[GetStreamedObjectInput, Nothing, GetStreamedObjectOutput, Nothing, StreamedBlob] {
     val id: ShapeId = ShapeId("smithy4s.example", "GetStreamedObject")
     val input: Schema[GetStreamedObjectInput] = GetStreamedObjectInput.schema.addHints(smithy4s.internals.InputOutput.Input.widen)
     val output: Schema[GetStreamedObjectOutput] = GetStreamedObjectOutput.schema.addHints(smithy4s.internals.InputOutput.Output.widen)
@@ -130,6 +134,7 @@ object StreamedObjectsOperation {
     val hints: Hints = Hints.empty
     def wrap(input: GetStreamedObjectInput) = GetStreamedObject(input)
     override val errorable: Option[Nothing] = None
+    def runWithProduct[F[_, _, _, _, _]](impl: StreamedObjectsProductGen[F]): F[GetStreamedObjectInput, Nothing, GetStreamedObjectOutput, Nothing, StreamedBlob] = impl.getStreamedObject
   }
 }
 

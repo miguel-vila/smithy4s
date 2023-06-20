@@ -82,6 +82,9 @@ sealed trait BrandServiceOperation[Input, Err, Output, StreamedInput, StreamedOu
   def run[F[_, _, _, _, _]](impl: BrandServiceGen[F]): F[Input, Err, Output, StreamedInput, StreamedOutput]
   def endpoint: (Input, Endpoint[BrandServiceOperation, Input, Err, Output, StreamedInput, StreamedOutput])
 }
+sealed trait BrandServiceEndpoint[Input, Err, Output, StreamedInput, StreamedOutput] extends smithy4s.Endpoint[BrandServiceOperation, Input, Err, Output, StreamedInput, StreamedOutput] {
+  def runWithProduct[F[_, _, _, _, _]](impl: BrandServiceProductGen[F]): F[Input, Err, Output, StreamedInput, StreamedOutput]
+}
 
 object BrandServiceOperation {
 
@@ -99,7 +102,7 @@ object BrandServiceOperation {
     def run[F[_, _, _, _, _]](impl: BrandServiceGen[F]): F[AddBrandsInput, Nothing, Unit, Nothing, Nothing] = impl.addBrands(input.brands)
     def endpoint: (AddBrandsInput, smithy4s.Endpoint[BrandServiceOperation,AddBrandsInput, Nothing, Unit, Nothing, Nothing]) = (input, AddBrands)
   }
-  object AddBrands extends smithy4s.Endpoint[BrandServiceOperation,AddBrandsInput, Nothing, Unit, Nothing, Nothing] {
+  object AddBrands extends smithy4s.Endpoint[BrandServiceOperation,AddBrandsInput, Nothing, Unit, Nothing, Nothing] with BrandServiceEndpoint[AddBrandsInput, Nothing, Unit, Nothing, Nothing] {
     val id: ShapeId = ShapeId("smithy4s.example", "AddBrands")
     val input: Schema[AddBrandsInput] = AddBrandsInput.schema.addHints(smithy4s.internals.InputOutput.Input.widen)
     val output: Schema[Unit] = unit.addHints(smithy4s.internals.InputOutput.Output.widen)
@@ -110,6 +113,7 @@ object BrandServiceOperation {
     )
     def wrap(input: AddBrandsInput) = AddBrands(input)
     override val errorable: Option[Nothing] = None
+    def runWithProduct[F[_, _, _, _, _]](impl: BrandServiceProductGen[F]): F[AddBrandsInput, Nothing, Unit, Nothing, Nothing] = impl.addBrands
   }
 }
 

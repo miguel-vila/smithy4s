@@ -102,6 +102,9 @@ sealed trait ReservedNameServiceOperation[Input, Err, Output, StreamedInput, Str
   def run[F[_, _, _, _, _]](impl: ReservedNameServiceGen[F]): F[Input, Err, Output, StreamedInput, StreamedOutput]
   def endpoint: (Input, Endpoint[ReservedNameServiceOperation, Input, Err, Output, StreamedInput, StreamedOutput])
 }
+sealed trait ReservedNameServiceEndpoint[Input, Err, Output, StreamedInput, StreamedOutput] extends smithy4s.Endpoint[ReservedNameServiceOperation, Input, Err, Output, StreamedInput, StreamedOutput] {
+  def runWithProduct[F[_, _, _, _, _]](impl: ReservedNameServiceProductGen[F]): F[Input, Err, Output, StreamedInput, StreamedOutput]
+}
 
 object ReservedNameServiceOperation {
 
@@ -125,7 +128,7 @@ object ReservedNameServiceOperation {
     def run[F[_, _, _, _, _]](impl: ReservedNameServiceGen[F]): F[SetInput, Nothing, Unit, Nothing, Nothing] = impl.set(input.set)
     def endpoint: (SetInput, smithy4s.Endpoint[ReservedNameServiceOperation,SetInput, Nothing, Unit, Nothing, Nothing]) = (input, _Set)
   }
-  object _Set extends smithy4s.Endpoint[ReservedNameServiceOperation,SetInput, Nothing, Unit, Nothing, Nothing] {
+  object _Set extends smithy4s.Endpoint[ReservedNameServiceOperation,SetInput, Nothing, Unit, Nothing, Nothing] with ReservedNameServiceEndpoint[SetInput, Nothing, Unit, Nothing, Nothing] {
     val id: ShapeId = ShapeId("smithy4s.example.collision", "Set")
     val input: Schema[SetInput] = SetInput.schema.addHints(smithy4s.internals.InputOutput.Input.widen)
     val output: Schema[Unit] = unit.addHints(smithy4s.internals.InputOutput.Output.widen)
@@ -136,12 +139,13 @@ object ReservedNameServiceOperation {
     )
     def wrap(input: SetInput) = _Set(input)
     override val errorable: Option[Nothing] = None
+    def runWithProduct[F[_, _, _, _, _]](impl: ReservedNameServiceProductGen[F]): F[SetInput, Nothing, Unit, Nothing, Nothing] = impl.set
   }
   final case class _List(input: ListInput) extends ReservedNameServiceOperation[ListInput, Nothing, Unit, Nothing, Nothing] {
     def run[F[_, _, _, _, _]](impl: ReservedNameServiceGen[F]): F[ListInput, Nothing, Unit, Nothing, Nothing] = impl.list(input.list)
     def endpoint: (ListInput, smithy4s.Endpoint[ReservedNameServiceOperation,ListInput, Nothing, Unit, Nothing, Nothing]) = (input, _List)
   }
-  object _List extends smithy4s.Endpoint[ReservedNameServiceOperation,ListInput, Nothing, Unit, Nothing, Nothing] {
+  object _List extends smithy4s.Endpoint[ReservedNameServiceOperation,ListInput, Nothing, Unit, Nothing, Nothing] with ReservedNameServiceEndpoint[ListInput, Nothing, Unit, Nothing, Nothing] {
     val id: ShapeId = ShapeId("smithy4s.example.collision", "List")
     val input: Schema[ListInput] = ListInput.schema.addHints(smithy4s.internals.InputOutput.Input.widen)
     val output: Schema[Unit] = unit.addHints(smithy4s.internals.InputOutput.Output.widen)
@@ -152,12 +156,13 @@ object ReservedNameServiceOperation {
     )
     def wrap(input: ListInput) = _List(input)
     override val errorable: Option[Nothing] = None
+    def runWithProduct[F[_, _, _, _, _]](impl: ReservedNameServiceProductGen[F]): F[ListInput, Nothing, Unit, Nothing, Nothing] = impl.list
   }
   final case class _Map(input: MapInput) extends ReservedNameServiceOperation[MapInput, Nothing, Unit, Nothing, Nothing] {
     def run[F[_, _, _, _, _]](impl: ReservedNameServiceGen[F]): F[MapInput, Nothing, Unit, Nothing, Nothing] = impl.map(input.value)
     def endpoint: (MapInput, smithy4s.Endpoint[ReservedNameServiceOperation,MapInput, Nothing, Unit, Nothing, Nothing]) = (input, _Map)
   }
-  object _Map extends smithy4s.Endpoint[ReservedNameServiceOperation,MapInput, Nothing, Unit, Nothing, Nothing] {
+  object _Map extends smithy4s.Endpoint[ReservedNameServiceOperation,MapInput, Nothing, Unit, Nothing, Nothing] with ReservedNameServiceEndpoint[MapInput, Nothing, Unit, Nothing, Nothing] {
     val id: ShapeId = ShapeId("smithy4s.example.collision", "Map")
     val input: Schema[MapInput] = MapInput.schema.addHints(smithy4s.internals.InputOutput.Input.widen)
     val output: Schema[Unit] = unit.addHints(smithy4s.internals.InputOutput.Output.widen)
@@ -168,12 +173,13 @@ object ReservedNameServiceOperation {
     )
     def wrap(input: MapInput) = _Map(input)
     override val errorable: Option[Nothing] = None
+    def runWithProduct[F[_, _, _, _, _]](impl: ReservedNameServiceProductGen[F]): F[MapInput, Nothing, Unit, Nothing, Nothing] = impl.map
   }
   final case class _Option(input: OptionInput) extends ReservedNameServiceOperation[OptionInput, Nothing, Unit, Nothing, Nothing] {
     def run[F[_, _, _, _, _]](impl: ReservedNameServiceGen[F]): F[OptionInput, Nothing, Unit, Nothing, Nothing] = impl.option(input.value)
     def endpoint: (OptionInput, smithy4s.Endpoint[ReservedNameServiceOperation,OptionInput, Nothing, Unit, Nothing, Nothing]) = (input, _Option)
   }
-  object _Option extends smithy4s.Endpoint[ReservedNameServiceOperation,OptionInput, Nothing, Unit, Nothing, Nothing] {
+  object _Option extends smithy4s.Endpoint[ReservedNameServiceOperation,OptionInput, Nothing, Unit, Nothing, Nothing] with ReservedNameServiceEndpoint[OptionInput, Nothing, Unit, Nothing, Nothing] {
     val id: ShapeId = ShapeId("smithy4s.example.collision", "Option")
     val input: Schema[OptionInput] = OptionInput.schema.addHints(smithy4s.internals.InputOutput.Input.widen)
     val output: Schema[Unit] = unit.addHints(smithy4s.internals.InputOutput.Output.widen)
@@ -184,6 +190,7 @@ object ReservedNameServiceOperation {
     )
     def wrap(input: OptionInput) = _Option(input)
     override val errorable: Option[Nothing] = None
+    def runWithProduct[F[_, _, _, _, _]](impl: ReservedNameServiceProductGen[F]): F[OptionInput, Nothing, Unit, Nothing, Nothing] = impl.option
   }
 }
 

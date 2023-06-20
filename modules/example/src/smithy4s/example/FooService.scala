@@ -91,6 +91,9 @@ sealed trait FooServiceOperation[Input, Err, Output, StreamedInput, StreamedOutp
   def run[F[_, _, _, _, _]](impl: FooServiceGen[F]): F[Input, Err, Output, StreamedInput, StreamedOutput]
   def endpoint: (Input, Endpoint[FooServiceOperation, Input, Err, Output, StreamedInput, StreamedOutput])
 }
+sealed trait FooServiceEndpoint[Input, Err, Output, StreamedInput, StreamedOutput] extends smithy4s.Endpoint[FooServiceOperation, Input, Err, Output, StreamedInput, StreamedOutput] {
+  def runWithProduct[F[_, _, _, _, _]](impl: FooServiceProductGen[F]): F[Input, Err, Output, StreamedInput, StreamedOutput]
+}
 
 object FooServiceOperation {
 
@@ -108,7 +111,7 @@ object FooServiceOperation {
     def run[F[_, _, _, _, _]](impl: FooServiceGen[F]): F[Unit, Nothing, GetFooOutput, Nothing, Nothing] = impl.getFoo()
     def endpoint: (Unit, smithy4s.Endpoint[FooServiceOperation,Unit, Nothing, GetFooOutput, Nothing, Nothing]) = ((), GetFoo)
   }
-  object GetFoo extends smithy4s.Endpoint[FooServiceOperation,Unit, Nothing, GetFooOutput, Nothing, Nothing] {
+  object GetFoo extends smithy4s.Endpoint[FooServiceOperation,Unit, Nothing, GetFooOutput, Nothing, Nothing] with FooServiceEndpoint[Unit, Nothing, GetFooOutput, Nothing, Nothing] {
     val id: ShapeId = ShapeId("smithy4s.example", "GetFoo")
     val input: Schema[Unit] = unit.addHints(smithy4s.internals.InputOutput.Input.widen)
     val output: Schema[GetFooOutput] = GetFooOutput.schema.addHints(smithy4s.internals.InputOutput.Output.widen)
@@ -121,6 +124,7 @@ object FooServiceOperation {
     )
     def wrap(input: Unit) = GetFoo()
     override val errorable: Option[Nothing] = None
+    def runWithProduct[F[_, _, _, _, _]](impl: FooServiceProductGen[F]): F[Unit, Nothing, GetFooOutput, Nothing, Nothing] = impl.getFoo
   }
 }
 

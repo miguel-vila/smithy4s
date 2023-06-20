@@ -87,6 +87,9 @@ sealed trait DeprecatedServiceOperation[Input, Err, Output, StreamedInput, Strea
   def run[F[_, _, _, _, _]](impl: DeprecatedServiceGen[F]): F[Input, Err, Output, StreamedInput, StreamedOutput]
   def endpoint: (Input, Endpoint[DeprecatedServiceOperation, Input, Err, Output, StreamedInput, StreamedOutput])
 }
+sealed trait DeprecatedServiceEndpoint[Input, Err, Output, StreamedInput, StreamedOutput] extends smithy4s.Endpoint[DeprecatedServiceOperation, Input, Err, Output, StreamedInput, StreamedOutput] {
+  def runWithProduct[F[_, _, _, _, _]](impl: DeprecatedServiceProductGen[F]): F[Input, Err, Output, StreamedInput, StreamedOutput]
+}
 
 object DeprecatedServiceOperation {
 
@@ -104,7 +107,7 @@ object DeprecatedServiceOperation {
     def run[F[_, _, _, _, _]](impl: DeprecatedServiceGen[F]): F[Unit, Nothing, Unit, Nothing, Nothing] = impl.deprecatedOperation()
     def endpoint: (Unit, smithy4s.Endpoint[DeprecatedServiceOperation,Unit, Nothing, Unit, Nothing, Nothing]) = ((), DeprecatedOperation)
   }
-  object DeprecatedOperation extends smithy4s.Endpoint[DeprecatedServiceOperation,Unit, Nothing, Unit, Nothing, Nothing] {
+  object DeprecatedOperation extends smithy4s.Endpoint[DeprecatedServiceOperation,Unit, Nothing, Unit, Nothing, Nothing] with DeprecatedServiceEndpoint[Unit, Nothing, Unit, Nothing, Nothing] {
     val id: ShapeId = ShapeId("smithy4s.example", "DeprecatedOperation")
     val input: Schema[Unit] = unit.addHints(smithy4s.internals.InputOutput.Input.widen)
     val output: Schema[Unit] = unit.addHints(smithy4s.internals.InputOutput.Output.widen)
@@ -115,6 +118,7 @@ object DeprecatedServiceOperation {
     )
     def wrap(input: Unit) = DeprecatedOperation()
     override val errorable: Option[Nothing] = None
+    def runWithProduct[F[_, _, _, _, _]](impl: DeprecatedServiceProductGen[F]): F[Unit, Nothing, Unit, Nothing, Nothing] = impl.deprecatedOperation
   }
 }
 

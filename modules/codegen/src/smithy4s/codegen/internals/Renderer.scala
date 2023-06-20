@@ -294,7 +294,9 @@ private[internals] class Renderer(compilationUnit: CompilationUnit) { self =>
     val genNameProduct: NameDef = NameDef(name + "ProductGen")
     val genNameProductRef: NameRef = genNameProduct.toNameRef
     val opTraitName = NameDef(name + "Operation")
+    val endpointTraitName = NameDef(name + "Endpoint")
     val opTraitNameRef = opTraitName.toNameRef
+    // val endpointTraitNameRef = endpointTraitName.toNameRef
 
     lines(
       documentationAnnotation(hints),
@@ -394,6 +396,8 @@ private[internals] class Renderer(compilationUnit: CompilationUnit) { self =>
           line"def $apply_[I, E, O, SI, SO](fa: service.Endpoint[I, E, O, SI, SO]): P2[I, E, O, SI, SO] =",
           if (ops.isEmpty) line"""sys.error("impossible")"""
           else
+            // Should be:
+            // line"fa.runWithProduct(algebra)"
             block(line"fa match")(
               ops.map { op =>
                 line"case ${opTraitNameRef}.${op.name} => algebra.${op.methodName}"
@@ -420,6 +424,11 @@ private[internals] class Renderer(compilationUnit: CompilationUnit) { self =>
       )(
         line"def run[F[_, _, _, _, _]](impl: $genName[F]): F[Input, Err, Output, StreamedInput, StreamedOutput]",
         line"def endpoint: (Input, $Endpoint_[$opTraitName, Input, Err, Output, StreamedInput, StreamedOutput])"
+      ),
+      block(
+        line"sealed trait $endpointTraitName[Input, Err, Output, StreamedInput, StreamedOutput] extends smithy4s.Endpoint[$opTraitName, Input, Err, Output, StreamedInput, StreamedOutput]"
+      )(
+        line"def runWithProduct[F[_, _, _, _, _]](impl: $genNameProduct[F]): F[Input, Err, Output, StreamedInput, StreamedOutput]",
       ),
       newline,
       block(
@@ -457,7 +466,7 @@ private[internals] class Renderer(compilationUnit: CompilationUnit) { self =>
             line"def $apply_[I, E, O, SI, SO](op: $opTraitNameRef[I, E, O, SI, SO]): P[I, E, O, SI, SO] = op.run(impl) "
           }
         ),
-        ops.map(renderOperation(name, _))
+        ops.map(renderOperation(name, endpointTraitName, _))
       ),
       newline
     )
@@ -465,6 +474,7 @@ private[internals] class Renderer(compilationUnit: CompilationUnit) { self =>
 
   private def renderOperation(
       serviceName: String,
+      endpointTraitName: NameDef,
       op: Operation
   ): Lines = {
     val params = if (op.input != Type.unit) {
@@ -474,6 +484,7 @@ private[internals] class Renderer(compilationUnit: CompilationUnit) { self =>
       line"input"
     } else line"()"
     val genServiceName = serviceName + "Gen"
+    val genProductServiceName = serviceName + "ProductGen"
     val opObjectName = serviceName + "Operation"
     val opName = op.name
     val opNameRef = NameRef(opName)
@@ -535,7 +546,9 @@ private[internals] class Renderer(compilationUnit: CompilationUnit) { self =>
       obj(
         opNameRef,
         ext =
-          line"smithy4s.Endpoint[$traitName,${op.renderAlgParams(opObjectName)}]$errorable"
+          line"smithy4s.Endpoint[$traitName,${op.renderAlgParams(opObjectName)}]$errorable",
+        w = 
+          line"$endpointTraitName[${op.renderAlgParams(opObjectName)}]",
       )(
         renderId(op.shapeId),
         line"val input: $Schema_[${op.input}] = ${op.input.schemaRef}.addHints(smithy4s.internals.InputOutput.Input.widen)",
@@ -544,7 +557,9 @@ private[internals] class Renderer(compilationUnit: CompilationUnit) { self =>
         renderStreamingSchemaVal("streamedOutput", op.streamedOutput),
         renderHintsVal(op.hints),
         line"def wrap(input: ${op.input}) = ${opNameRef}($input)",
-        renderErrorable(op)
+        renderErrorable(op),
+        line"def runWithProduct[F[_, _, _, _, _]](impl: $genProductServiceName[F]): F[${op
+          .renderAlgParams(opObjectName)}] = impl.${op.methodName}",
       ),
       renderedErrorUnion
     )

@@ -93,6 +93,9 @@ sealed trait ImportServiceOperation[Input, Err, Output, StreamedInput, StreamedO
   def run[F[_, _, _, _, _]](impl: ImportServiceGen[F]): F[Input, Err, Output, StreamedInput, StreamedOutput]
   def endpoint: (Input, Endpoint[ImportServiceOperation, Input, Err, Output, StreamedInput, StreamedOutput])
 }
+sealed trait ImportServiceEndpoint[Input, Err, Output, StreamedInput, StreamedOutput] extends smithy4s.Endpoint[ImportServiceOperation, Input, Err, Output, StreamedInput, StreamedOutput] {
+  def runWithProduct[F[_, _, _, _, _]](impl: ImportServiceProductGen[F]): F[Input, Err, Output, StreamedInput, StreamedOutput]
+}
 
 object ImportServiceOperation {
 
@@ -110,7 +113,7 @@ object ImportServiceOperation {
     def run[F[_, _, _, _, _]](impl: ImportServiceGen[F]): F[Unit, ImportServiceOperation.ImportOperationError, OpOutput, Nothing, Nothing] = impl.importOperation()
     def endpoint: (Unit, smithy4s.Endpoint[ImportServiceOperation,Unit, ImportServiceOperation.ImportOperationError, OpOutput, Nothing, Nothing]) = ((), ImportOperation)
   }
-  object ImportOperation extends smithy4s.Endpoint[ImportServiceOperation,Unit, ImportServiceOperation.ImportOperationError, OpOutput, Nothing, Nothing] with Errorable[ImportOperationError] {
+  object ImportOperation extends smithy4s.Endpoint[ImportServiceOperation,Unit, ImportServiceOperation.ImportOperationError, OpOutput, Nothing, Nothing] with Errorable[ImportOperationError] with ImportServiceEndpoint[Unit, ImportServiceOperation.ImportOperationError, OpOutput, Nothing, Nothing] {
     val id: ShapeId = ShapeId("smithy4s.example.import_test", "ImportOperation")
     val input: Schema[Unit] = unit.addHints(smithy4s.internals.InputOutput.Input.widen)
     val output: Schema[OpOutput] = OpOutput.schema.addHints(smithy4s.internals.InputOutput.Output.widen)
@@ -129,6 +132,7 @@ object ImportServiceOperation {
     def unliftError(e: ImportOperationError): Throwable = e match {
       case ImportOperationError.NotFoundErrorCase(e) => e
     }
+    def runWithProduct[F[_, _, _, _, _]](impl: ImportServiceProductGen[F]): F[Unit, ImportServiceOperation.ImportOperationError, OpOutput, Nothing, Nothing] = impl.importOperation
   }
   sealed trait ImportOperationError extends scala.Product with scala.Serializable {
     @inline final def widen: ImportOperationError = this

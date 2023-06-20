@@ -94,6 +94,9 @@ sealed trait NameCollisionOperation[Input, Err, Output, StreamedInput, StreamedO
   def run[F[_, _, _, _, _]](impl: NameCollisionGen[F]): F[Input, Err, Output, StreamedInput, StreamedOutput]
   def endpoint: (Input, smithy4s.Endpoint[NameCollisionOperation, Input, Err, Output, StreamedInput, StreamedOutput])
 }
+sealed trait NameCollisionEndpoint[Input, Err, Output, StreamedInput, StreamedOutput] extends smithy4s.Endpoint[NameCollisionOperation, Input, Err, Output, StreamedInput, StreamedOutput] {
+  def runWithProduct[F[_, _, _, _, _]](impl: NameCollisionProductGen[F]): F[Input, Err, Output, StreamedInput, StreamedOutput]
+}
 
 object NameCollisionOperation {
 
@@ -113,7 +116,7 @@ object NameCollisionOperation {
     def run[F[_, _, _, _, _]](impl: NameCollisionGen[F]): F[Unit, NameCollisionOperation.MyOpError, Unit, Nothing, Nothing] = impl.myOp()
     def endpoint: (Unit, smithy4s.Endpoint[NameCollisionOperation,Unit, NameCollisionOperation.MyOpError, Unit, Nothing, Nothing]) = ((), MyOp)
   }
-  object MyOp extends smithy4s.Endpoint[NameCollisionOperation,Unit, NameCollisionOperation.MyOpError, Unit, Nothing, Nothing] with Errorable[MyOpError] {
+  object MyOp extends smithy4s.Endpoint[NameCollisionOperation,Unit, NameCollisionOperation.MyOpError, Unit, Nothing, Nothing] with Errorable[MyOpError] with NameCollisionEndpoint[Unit, NameCollisionOperation.MyOpError, Unit, Nothing, Nothing] {
     val id: ShapeId = ShapeId("smithy4s.example", "MyOp")
     val input: Schema[Unit] = unit.addHints(smithy4s.internals.InputOutput.Input.widen)
     val output: Schema[Unit] = unit.addHints(smithy4s.internals.InputOutput.Output.widen)
@@ -130,6 +133,7 @@ object NameCollisionOperation {
     def unliftError(e: MyOpError): Throwable = e match {
       case MyOpError.MyOpErrorCase(e) => e
     }
+    def runWithProduct[F[_, _, _, _, _]](impl: NameCollisionProductGen[F]): F[Unit, NameCollisionOperation.MyOpError, Unit, Nothing, Nothing] = impl.myOp
   }
   sealed trait MyOpError extends scala.Product with scala.Serializable {
     @inline final def widen: MyOpError = this
@@ -157,7 +161,7 @@ object NameCollisionOperation {
     def run[F[_, _, _, _, _]](impl: NameCollisionGen[F]): F[Unit, Nothing, Unit, Nothing, Nothing] = impl.endpoint()
     def endpoint: (Unit, smithy4s.Endpoint[NameCollisionOperation,Unit, Nothing, Unit, Nothing, Nothing]) = ((), Endpoint)
   }
-  object Endpoint extends smithy4s.Endpoint[NameCollisionOperation,Unit, Nothing, Unit, Nothing, Nothing] {
+  object Endpoint extends smithy4s.Endpoint[NameCollisionOperation,Unit, Nothing, Unit, Nothing, Nothing] with NameCollisionEndpoint[Unit, Nothing, Unit, Nothing, Nothing] {
     val id: ShapeId = ShapeId("smithy4s.example", "Endpoint")
     val input: Schema[Unit] = unit.addHints(smithy4s.internals.InputOutput.Input.widen)
     val output: Schema[Unit] = unit.addHints(smithy4s.internals.InputOutput.Output.widen)
@@ -166,6 +170,7 @@ object NameCollisionOperation {
     val hints: Hints = Hints.empty
     def wrap(input: Unit) = Endpoint()
     override val errorable: Option[Nothing] = None
+    def runWithProduct[F[_, _, _, _, _]](impl: NameCollisionProductGen[F]): F[Unit, Nothing, Unit, Nothing, Nothing] = impl.endpoint
   }
 }
 

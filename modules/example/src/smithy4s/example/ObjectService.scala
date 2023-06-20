@@ -106,6 +106,9 @@ sealed trait ObjectServiceOperation[Input, Err, Output, StreamedInput, StreamedO
   def run[F[_, _, _, _, _]](impl: ObjectServiceGen[F]): F[Input, Err, Output, StreamedInput, StreamedOutput]
   def endpoint: (Input, Endpoint[ObjectServiceOperation, Input, Err, Output, StreamedInput, StreamedOutput])
 }
+sealed trait ObjectServiceEndpoint[Input, Err, Output, StreamedInput, StreamedOutput] extends smithy4s.Endpoint[ObjectServiceOperation, Input, Err, Output, StreamedInput, StreamedOutput] {
+  def runWithProduct[F[_, _, _, _, _]](impl: ObjectServiceProductGen[F]): F[Input, Err, Output, StreamedInput, StreamedOutput]
+}
 
 object ObjectServiceOperation {
 
@@ -125,7 +128,7 @@ object ObjectServiceOperation {
     def run[F[_, _, _, _, _]](impl: ObjectServiceGen[F]): F[PutObjectInput, ObjectServiceOperation.PutObjectError, Unit, Nothing, Nothing] = impl.putObject(input.key, input.bucketName, input.data, input.foo, input.someValue)
     def endpoint: (PutObjectInput, smithy4s.Endpoint[ObjectServiceOperation,PutObjectInput, ObjectServiceOperation.PutObjectError, Unit, Nothing, Nothing]) = (input, PutObject)
   }
-  object PutObject extends smithy4s.Endpoint[ObjectServiceOperation,PutObjectInput, ObjectServiceOperation.PutObjectError, Unit, Nothing, Nothing] with Errorable[PutObjectError] {
+  object PutObject extends smithy4s.Endpoint[ObjectServiceOperation,PutObjectInput, ObjectServiceOperation.PutObjectError, Unit, Nothing, Nothing] with Errorable[PutObjectError] with ObjectServiceEndpoint[PutObjectInput, ObjectServiceOperation.PutObjectError, Unit, Nothing, Nothing] {
     val id: ShapeId = ShapeId("smithy4s.example", "PutObject")
     val input: Schema[PutObjectInput] = PutObjectInput.schema.addHints(smithy4s.internals.InputOutput.Input.widen)
     val output: Schema[Unit] = unit.addHints(smithy4s.internals.InputOutput.Output.widen)
@@ -147,6 +150,7 @@ object ObjectServiceOperation {
       case PutObjectError.ServerErrorCase(e) => e
       case PutObjectError.NoMoreSpaceCase(e) => e
     }
+    def runWithProduct[F[_, _, _, _, _]](impl: ObjectServiceProductGen[F]): F[PutObjectInput, ObjectServiceOperation.PutObjectError, Unit, Nothing, Nothing] = impl.putObject
   }
   sealed trait PutObjectError extends scala.Product with scala.Serializable {
     @inline final def widen: PutObjectError = this
@@ -182,7 +186,7 @@ object ObjectServiceOperation {
     def run[F[_, _, _, _, _]](impl: ObjectServiceGen[F]): F[GetObjectInput, ObjectServiceOperation.GetObjectError, GetObjectOutput, Nothing, Nothing] = impl.getObject(input.key, input.bucketName)
     def endpoint: (GetObjectInput, smithy4s.Endpoint[ObjectServiceOperation,GetObjectInput, ObjectServiceOperation.GetObjectError, GetObjectOutput, Nothing, Nothing]) = (input, GetObject)
   }
-  object GetObject extends smithy4s.Endpoint[ObjectServiceOperation,GetObjectInput, ObjectServiceOperation.GetObjectError, GetObjectOutput, Nothing, Nothing] with Errorable[GetObjectError] {
+  object GetObject extends smithy4s.Endpoint[ObjectServiceOperation,GetObjectInput, ObjectServiceOperation.GetObjectError, GetObjectOutput, Nothing, Nothing] with Errorable[GetObjectError] with ObjectServiceEndpoint[GetObjectInput, ObjectServiceOperation.GetObjectError, GetObjectOutput, Nothing, Nothing] {
     val id: ShapeId = ShapeId("smithy4s.example", "GetObject")
     val input: Schema[GetObjectInput] = GetObjectInput.schema.addHints(smithy4s.internals.InputOutput.Input.widen)
     val output: Schema[GetObjectOutput] = GetObjectOutput.schema.addHints(smithy4s.internals.InputOutput.Output.widen)
@@ -202,6 +206,7 @@ object ObjectServiceOperation {
     def unliftError(e: GetObjectError): Throwable = e match {
       case GetObjectError.ServerErrorCase(e) => e
     }
+    def runWithProduct[F[_, _, _, _, _]](impl: ObjectServiceProductGen[F]): F[GetObjectInput, ObjectServiceOperation.GetObjectError, GetObjectOutput, Nothing, Nothing] = impl.getObject
   }
   sealed trait GetObjectError extends scala.Product with scala.Serializable {
     @inline final def widen: GetObjectError = this
